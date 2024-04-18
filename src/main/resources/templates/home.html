@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <link rel="stylesheet" href="/css/style.css" type="text/css">
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <h1>파일 확장자 차단</h1>
+    <hr/>
+    <ul>
+        <li style="margin-right: 20px;">
+            <div><b>고정 확장자</b></div>
+        </li>
+        <li>
+            <span>
+                <th:block th:each="extension : ${defaultExtensionList}">
+                    <th:block th:if="${extension.isChecked == true}">
+                        [[${extension.name}]] <input type="checkbox"
+                                                     th:id="${extension.name}"
+                                                     onchange="changeCheckState(this)"
+                                                     checked/> &nbsp;
+                    </th:block>
+                    <th:block th:if="${extension.isChecked == false}">
+                         [[${extension.name}]] <input type="checkbox"
+                                                      th:id="${extension.name}"
+                                                      onchange="changeCheckState(this)"
+                                                /> &nbsp;
+                    </th:block>
+                </th:block>
+            </span>
+            <div class="container">
+                <div>
+                    <input type="text" placeholder="확장자 입력" id="inputExtension" /> &nbsp;
+                    <button type="button" onclick="addCustomExtension()">+추가</button>
+                </div>
+                <br/>
+                <div class="custom-container">
+                    <p style="font-size: 10px">[[${count}]]/200</p>
+                    <div class="custom-btn">
+                        <th:block th:each="extension : ${customExtensionList}">
+                            <button type="button" class="custom-bnt">
+                                [[${extension.name}]] <a onclick="removeCustomExtension(this)" th:id="${extension.name}">x</a>
+                            </button>
+                        </th:block>
+                    </div>
+                </div>
+                <div class="file-container">
+                    <input type="file" id="file"/><br>
+                    <button type="button" id="file-button" onclick="transferFile()">파일 업로드</button>
+                </div>
+            </div>
+        </li>
+    </ul>
+</body>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script>
+
+    function changeCheckState(checkbox) {
+        const extensionName = checkbox.getAttribute('id');
+            axios({
+                method : 'PATCH',
+                url: 'api/extension/' + extensionName
+            }).then(res => {
+                location.reload();
+            }).catch(ex => {
+                console.error(ex);
+                alert('status code = ' + ex.response.data.status + '\nMessage = ' + ex.response.data.message);
+            });
+    }
+
+    function validateInput(name) {
+        if (name.length === 0) {
+            alert('확장자는 비어있을 수 없습니다. 확인 후 다시 시도해주시기 바랍니다.');
+            return false;
+        }
+
+        if (name.length > 20) {
+            alert('확장자의 최대 길이는 20자까지 허용됩니다. 확인 후 다시 시도해주시기 바랍니다.');
+            return false;
+        }
+
+        return true;
+    }
+
+    function addCustomExtension() {
+        const extensionName = document.getElementById('inputExtension').value;
+        const valid = validateInput(extensionName);
+
+        if (valid) {
+            axios({
+                method : 'POST',
+                url : '/api/extension',
+                data : {'name' : extensionName }
+            }).then(res => {
+                alert('커스텀 확장자 등록이 성공했습니다.');
+                location.reload();
+            }).catch(ex => {
+                console.error(ex);
+                alert('status code = ' + ex.response.data.status + '\nMessage = ' + ex.response.data.message);
+            });
+        }
+
+    }
+
+    function removeCustomExtension(removeTag) {
+        const extensionName = removeTag.getAttribute('id');
+
+        axios({
+            method: 'DELETE',
+            url : '/api/extension/' + extensionName
+        }).then(res => {
+            alert('커스텀 확장자 삭제가 성공했습니다.');
+            location.reload();
+        }).catch(ex => {
+            console.error(ex);
+            alert('status code = ' + ex.response.data.status + '\nMessage = ' + ex.response.data.message);
+        });
+    }
+
+    function transferFile() {
+        const file = document.getElementById('file').files[0];
+
+        let formData = new FormData();
+        formData.append('file', file);
+
+        console.log(formData);
+
+        axios({
+            method: 'POST',
+            url: '/api/files',
+            headers: {
+                "Content-Type" : "multipart/form-data"
+            },
+            data: formData
+        }).then(res => {
+            alert('파일 업로드가 성공했습니다.');
+            location.reload();
+        }).catch(ex => {
+            console.error(ex);
+            alert('status code = ' + ex.response.data.status + '\nMessage = ' + ex.response.data.message);
+        });
+    }
+</script>
+</html>
